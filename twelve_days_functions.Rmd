@@ -47,19 +47,24 @@ the function takes a gift and returns the appropriate plural.
 # Return -- A string or vector of strings with the pluralized words
 
 pluralize_gift <- function(gift){
-
-
     
-    if_else(gift[-1] == "y", gift <- gift %>% str_replace("y$", "ie"), gift <- gift %>% str_replace("$", "s"))
-    if_else(str_detect(gift, "oo"), gift <- str_replace(gift, "oo", "ee"), gift <- gift)
+    if (str_sub(gift, -1, -1) == 'y'){
+      
+        gift <- gift %>% str_replace("y$", "ies")
+        
+      } else if (str_detect(gift, "oo")) {
+        
+        gift <- str_replace(gift, "oo", "ee")
+        
+      } else {
+        
+        gift <- gift %>% str_replace("$", "s")
+        
+      }
   
-  
-    #if(str_detect(gift, "oo")){
-    #return(str_replace(gift, "oo", "ee"))
-
-return(gift)
-
+    return(gift)
 }
+
 purrr::map_chr(xmas$Gift.Item, pluralize_gift)
 #pluralize_gift(xmas$Gift.Item)
 ```
@@ -132,7 +137,11 @@ make_phrase <- function(num, num_word, item, verb, adjective, location) {
   
   ## Step 1: Replace NAs with blank strings
   verb <- str_replace_na(verb, "")
-  
+  adjective <- str_replace_na(adjective, "")
+  num <- str_replace_na(num, "")
+  num_word <- str_replace_na(num_word, "")
+  item <- str_replace_na(item, "")
+  location <- str_replace_na(location, "")
   ## Step 2: Pluralize the gift if needed
   ## Items with numbers larger than 1 should be pluralized
   ## Single items starting with a vowel should have "an" in front
@@ -173,6 +182,14 @@ to create numbered days and then use those in your `pmap_chr()`!
 
 ```{r}
 
+
+xmas <- xmas %>%
+  mutate(
+    Day.in.Words = as.character(english(Day)),
+    Full.Phrase = pmap_chr(list(Day, Day.in.Words, Gift.Item, Verb, Adjective, Location), 
+                           make_phrase)
+  )
+xmas
 ```
 
 
@@ -190,31 +207,34 @@ Write a function called `sing_line` that takes as input:
 * The name of a column in the dataset that contains the phrases for each day.
 
 ```{r}
+library(crayon)
 # Produces the string for one day of the song.
 # Arguments -- dataset -- A data frame containing information about gifts
 # Arguments -- line -- The number of the line for the day you want to sing about
 # Arguments -- phrase_col -- The variable name for the column in the dataset that contains the gift phrases
 # Return -- A string singing the line of the song with all gifts for the given day.
 
-sing_day <- function(dataset, line, phrase_col){
+sing_line <- function(dataset, line, phrase_col){
   
   # Step 1: Setup the intro line
   
-  num_word <- ____
-  
-  intro <- glue::glue("On the {num_word} day of Christmas")
-  
+  num_word <- english::ordinal(line)
+ 
+  intro <- glue::glue("On the {num_word} day of Christmas, my true love sent to me,")
   # Step 2: Sing the gift phrases
 
-    phrases <- dataset %>% 
-      pull({{phrase_col}})
-
-  ????
-    
-  ## put it together
-    
-  ????
-
+    phrases <- dataset %>%
+      filter(Day <= line) %>% 
+      pull({{phrase_col}}) %>% 
+      rev()
+   
+    if (str_detect(phrases[line], "one"))
+    {
+      phrases[line] <- str_replace(phrases[line], "one", "a")
+    }
+    a <- paste(phrases[1:(line-1)], collapse = ",\n")
+    b <- str_c(a, phrases[line], sep = "\nand ")
+    return (glue("{intro}\n{b}"))
 
 }
 
@@ -226,7 +246,7 @@ For example,
 
 ```{r}
 sing_line(xmas, 
-          num = 2, 
+         line = 4, 
           phrase_col = Full.Phrase)
 
 ```
