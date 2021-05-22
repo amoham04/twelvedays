@@ -223,18 +223,22 @@ sing_line <- function(dataset, line, phrase_col){
   intro <- glue::glue("On the {num_word} day of Christmas, my true love sent to me,")
   # Step 2: Sing the gift phrases
 
-    phrases <- dataset %>%
+   phrases <- dataset %>%
       filter(Day <= line) %>% 
       pull({{phrase_col}}) %>% 
       rev()
-   
+
     if (str_detect(phrases[line], "one"))
     {
       phrases[line] <- str_replace(phrases[line], "one", "a")
     }
     a <- paste(phrases[1:(line-1)], collapse = ",\n")
-    b <- str_c(a, phrases[line], sep = "\nand ")
-    return (glue("{intro}\n{b}"))
+    if (line > 1){
+     a <- str_c(a, phrases[line], sep = "\nand ")
+      
+    }
+    return (glue("{intro}\n{a}"))
+
 
 }
 
@@ -246,7 +250,7 @@ For example,
 
 ```{r}
 sing_line(xmas, 
-         line = 4, 
+         line = 3, 
           phrase_col = Full.Phrase)
 
 ```
